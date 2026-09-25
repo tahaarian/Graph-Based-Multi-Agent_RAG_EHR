@@ -1,0 +1,56 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+.eggs/
+
+# --- Virtual envs ---
+venv/
+.venv/
+env/
+ENV/
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Data (privacy & size) ---
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/external/*
+!data/external/.gitkeep
+models/
+*.gguf
+*.bin
+
+# --- Testing / tooling ---
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- IDEs ---
+.vscode/
+.idea/
+*.swp
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+
+# --- OS ---
+.DS_Store
+Thumbs.db

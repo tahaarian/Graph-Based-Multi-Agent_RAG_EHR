@@ -1,0 +1,12 @@
+[project]
+name = "ehr-graph-rag"
+version = "0.1.0"
+description = "Dynamic Graph-Based Multi-Agent RAG Framework for Longitudinal EHRs"
+requires-python = ">=3.11"
+
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
