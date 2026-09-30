@@ -1,0 +1,87 @@
+14:08:59  INFO      ============================================================
+14:08:59  INFO      improve_concept_mapping_v3  —  starting
+14:09:00  INFO      VOCAB_DIR : D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\vocab
+14:09:00  INFO      OMOP_DIR  : D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\omop_cdm
+14:09:00  INFO      OUT_DIR   : D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed
+14:09:00  INFO      ============================================================
+14:14:00  INFO      ============================================================
+14:14:00  INFO      improve_concept_mapping_v3  —  starting
+14:14:00  INFO      VOCAB_DIR : D:\projects\EHR\vocab
+14:14:00  INFO      OMOP_DIR  : D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\omop_cdm
+14:14:00  INFO      OUT_DIR   : D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed
+14:14:00  INFO      ============================================================
+14:14:00  INFO      CONCEPT.csv delimiter detected: '\t'
+14:14:08  INFO      Vocabulary loaded — by code: 2004477  |  by name: 1387483  |  skipped rows: 0
+14:14:08  WARNING   Table not found, skipping: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\omop_cdm\condition_occurrence.csv
+14:14:08  WARNING   Table not found, skipping: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\omop_cdm\drug_exposure.csv
+14:14:08  WARNING   Table not found, skipping: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\omop_cdm\procedure_occurrence.csv
+14:14:08  WARNING   Table not found, skipping: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\omop_cdm\measurement.csv
+14:14:08  WARNING   Table not found, skipping: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\omop_cdm\observation.csv
+14:14:08  INFO      
+14:14:08  INFO      ────────────────────────────────────────────────────────────
+14:14:08  INFO        CONCEPT COVERAGE SUMMARY (v3)
+14:14:08  INFO      ────────────────────────────────────────────────────────────
+14:14:08  INFO        condition_occurrence.csv                  0 / 0       (0.0%)
+14:14:08  INFO        drug_exposure.csv                         0 / 0       (0.0%)
+14:14:08  INFO        procedure_occurrence.csv                  0 / 0       (0.0%)
+14:14:08  INFO        measurement.csv                           0 / 0       (0.0%)
+14:14:08  INFO        observation.csv                           0 / 0       (0.0%)
+14:14:08  INFO      ────────────────────────────────────────────────────────────
+14:14:08  INFO        TOTAL                                     0 / 0       (0.0%)
+14:14:08  INFO      ────────────────────────────────────────────────────────────
+14:14:08  INFO      Enriched tables written to: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed
+14:14:08  INFO      Done.
+14:15:59  INFO      ============================================================
+14:15:59  INFO      improve_concept_mapping_v3  —  starting
+14:15:59  INFO      VOCAB_DIR : D:\projects\EHR\vocab
+14:15:59  INFO      OMOP_DIR  : D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed
+14:15:59  INFO      OUT_DIR   : D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed
+14:15:59  INFO      ============================================================
+14:15:59  INFO      CONCEPT.csv delimiter detected: '\t'
+14:16:07  INFO      Vocabulary loaded — by code: 2004477  |  by name: 1387483  |  skipped rows: 0
+14:16:07  WARNING   Table not found, skipping: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed\condition_occurrence.csv
+14:16:07  WARNING   Table not found, skipping: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed\drug_exposure.csv
+14:16:07  WARNING   Table not found, skipping: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed\procedure_occurrence.csv
+14:16:07  WARNING   Table not found, skipping: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed\measurement.csv
+14:16:07  WARNING   Table not found, skipping: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed\observation.csv
+14:16:07  INFO      
+14:16:07  INFO      ────────────────────────────────────────────────────────────
+14:16:07  INFO        CONCEPT COVERAGE SUMMARY (v3)
+14:16:07  INFO      ────────────────────────────────────────────────────────────
+14:16:07  INFO        condition_occurrence.csv                  0 / 0       (0.0%)
+14:16:07  INFO        drug_exposure.csv                         0 / 0       (0.0%)
+14:16:07  INFO        procedure_occurrence.csv                  0 / 0       (0.0%)
+14:16:07  INFO        measurement.csv                           0 / 0       (0.0%)
+14:16:07  INFO        observation.csv                           0 / 0       (0.0%)
+14:16:07  INFO      ────────────────────────────────────────────────────────────
+14:16:07  INFO        TOTAL                                     0 / 0       (0.0%)
+14:16:07  INFO      ────────────────────────────────────────────────────────────
+14:16:07  INFO      Enriched tables written to: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed
+14:16:07  INFO      Done.
+14:16:35  INFO      ============================================================
+14:16:35  INFO      improve_concept_mapping_v3  —  starting
+14:16:35  INFO      VOCAB_DIR : D:\projects\EHR\vocab
+14:16:35  INFO      OMOP_DIR  : D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed\omop_cdm
+14:16:35  INFO      OUT_DIR   : D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed
+14:16:35  INFO      ============================================================
+14:16:35  INFO      CONCEPT.csv delimiter detected: '\t'
+14:16:42  INFO      Vocabulary loaded — by code: 2004477  |  by name: 1387483  |  skipped rows: 0
+14:16:42  INFO      condition_occurrence.csv             total=  7729  mapped=  7729  already_set=     0  coverage=100.0%
+14:16:42  INFO      drug_exposure.csv                    total=  9067  mapped=  9067  already_set=     0  coverage=100.0%
+14:16:43  INFO      procedure_occurrence.csv             total= 33672  mapped= 33672  already_set=     0  coverage=100.0%
+14:16:43  INFO      measurement.csv                      total= 90684  mapped= 84345  already_set=     0  coverage=93.0%
+14:16:44  INFO      observation.csv                      total= 55602  mapped= 55572  already_set=     0  coverage=99.9%
+14:16:44  INFO      
+14:16:44  INFO      ────────────────────────────────────────────────────────────
+14:16:44  INFO        CONCEPT COVERAGE SUMMARY (v3)
+14:16:44  INFO      ────────────────────────────────────────────────────────────
+14:16:44  INFO        condition_occurrence.csv               7729 / 7729    (100.0%)
+14:16:44  INFO        drug_exposure.csv                      9067 / 9067    (100.0%)
+14:16:44  INFO        procedure_occurrence.csv              33672 / 33672   (100.0%)
+14:16:44  INFO        measurement.csv                       84345 / 90684   (93.0%)
+14:16:44  INFO        observation.csv                       55572 / 55602   (99.9%)
+14:16:44  INFO      ────────────────────────────────────────────────────────────
+14:16:44  INFO        TOTAL                                190385 / 196754  (96.8%)
+14:16:44  INFO      ────────────────────────────────────────────────────────────
+14:16:44  INFO      Enriched tables written to: D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR\data\processed
+14:16:44  INFO      Done.

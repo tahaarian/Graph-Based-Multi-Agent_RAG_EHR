@@ -1,0 +1,83 @@
+14:41:51  INFO      Connecting to Neo4j at bolt://localhost:7687 …
+14:41:55  ERROR     Cannot connect to Neo4j: Couldn't connect to localhost:7687 (resolved to ()):
+Failed to establish connection to ResolvedIPv6Address(('::1', 7687, 0, 0)) (reason [WinError 10061] No connection could be made because the target machine actively refused it)
+Failed to establish connection to ResolvedIPv4Address(('127.0.0.1', 7687)) (reason [WinError 10061] No connection could be made because the target machine actively refused it)
+14:42:23  INFO      Connecting to Neo4j at bolt://localhost:7687 …
+14:42:27  ERROR     Cannot connect to Neo4j: Couldn't connect to localhost:7687 (resolved to ()):
+Failed to establish connection to ResolvedIPv6Address(('::1', 7687, 0, 0)) (reason [WinError 10061] No connection could be made because the target machine actively refused it)
+Failed to establish connection to ResolvedIPv4Address(('127.0.0.1', 7687)) (reason [WinError 10061] No connection could be made because the target machine actively refused it)
+14:43:02  INFO      Connecting to Neo4j at bolt://localhost:7687 …
+14:43:04  ERROR     Cannot connect to Neo4j: {code: Neo.ClientError.Security.Unauthorized} {message: The client is unauthorized due to authentication failure.}
+14:44:36  INFO      Connecting to Neo4j at bolt://localhost:7687 …
+14:44:38  INFO      Connected.
+
+14:44:38  INFO      === Step 0: Schema ===
+14:44:39  INFO        ✓ constraint Patient.person_id
+14:44:40  INFO        ✓ constraint Concept.concept_id
+14:44:40  INFO        ✓ constraint Condition.occurrence_id
+14:44:40  INFO        ✓ constraint DrugExposure.exposure_id
+14:44:40  INFO        ✓ constraint Procedure.occurrence_id
+14:44:40  INFO        ✓ constraint Measurement.measurement_id
+14:44:40  INFO        ✓ constraint Observation.observation_id
+14:44:41  INFO      Schema ready.
+
+14:44:41  INFO      === Step 1: Collect referenced concept_ids ===
+14:44:41  INFO        total referenced concept_ids: 0
+
+14:44:41  INFO      === Step 2: Load Concept nodes ===
+14:44:47  INFO        Concept nodes loaded: 0
+
+14:44:47  INFO      === Step 3: Load Patient nodes ===
+14:44:49  INFO        Patient nodes loaded: 230
+
+14:44:49  INFO      === Step 4: Load clinical-event nodes ===
+14:44:50  INFO        Condition         nodes/edges loaded: 7729
+14:44:52  INFO        DrugExposure      nodes/edges loaded: 9067
+14:44:54  INFO        Procedure         nodes/edges loaded: 33672
+14:45:01  INFO        Measurement       nodes/edges loaded: 90684
+14:45:04  INFO        Observation       nodes/edges loaded: 55602
+14:45:04  INFO      
+14:45:04  INFO      === Step 5: MAPS_TO edges ===
+14:45:05  INFO        Condition         MAPS_TO created: 0
+14:45:05  INFO        DrugExposure      MAPS_TO created: 0
+14:45:05  INFO        Procedure         MAPS_TO created: 0
+14:45:05  INFO        Measurement       MAPS_TO created: 0
+14:45:05  INFO        Observation       MAPS_TO created: 0
+14:45:05  INFO      
+14:45:05  INFO      === Step 6: NEXT_EVENT temporal chain ===
+14:45:05  INFO        Cleared existing NEXT_EVENT edges.
+14:45:17  INFO        NEXT_EVENT edges created: 196524
+
+14:45:17  INFO      === Done in 38.8 s ===
+14:51:58  INFO      Connecting to Neo4j at bolt://localhost:7687 …
+14:52:00  INFO      Connected.
+
+14:52:00  INFO      === Step 0: Schema ===
+14:52:00  INFO        ✓ constraint Patient.person_id
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE CONSTRAINT IF NOT EXISTS FOR (e:Patient) REQUIRE (e.person_id) IS UNIQUE` has no effect.} {description: `CONSTRAINT constraint_80f8427d FOR (e:Patient) REQUIRE (e.person_id) IS UNIQUE` already exists.} {position: None} for query: 'CREATE CONSTRAINT IF NOT EXISTS FOR (n:Patient) REQUIRE n.person_id IS UNIQUE'
+14:52:00  INFO        ✓ constraint Concept.concept_id
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE CONSTRAINT IF NOT EXISTS FOR (e:Concept) REQUIRE (e.concept_id) IS UNIQUE` has no effect.} {description: `CONSTRAINT constraint_37cfa086 FOR (e:Concept) REQUIRE (e.concept_id) IS UNIQUE` already exists.} {position: None} for query: 'CREATE CONSTRAINT IF NOT EXISTS FOR (n:Concept) REQUIRE n.concept_id IS UNIQUE'
+14:52:00  INFO        ✓ constraint Condition.occurrence_id
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE CONSTRAINT IF NOT EXISTS FOR (e:Condition) REQUIRE (e.occurrence_id) IS UNIQUE` has no effect.} {description: `CONSTRAINT constraint_1915e0c6 FOR (e:Condition) REQUIRE (e.occurrence_id) IS UNIQUE` already exists.} {position: None} for query: 'CREATE CONSTRAINT IF NOT EXISTS FOR (n:Condition) REQUIRE n.occurrence_id IS UNIQUE'
+14:52:00  INFO        ✓ constraint DrugExposure.exposure_id
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE CONSTRAINT IF NOT EXISTS FOR (e:DrugExposure) REQUIRE (e.exposure_id) IS UNIQUE` has no effect.} {description: `CONSTRAINT constraint_25db3950 FOR (e:DrugExposure) REQUIRE (e.exposure_id) IS UNIQUE` already exists.} {position: None} for query: 'CREATE CONSTRAINT IF NOT EXISTS FOR (n:DrugExposure) REQUIRE n.exposure_id IS UNIQUE'
+14:52:00  INFO        ✓ constraint Procedure.occurrence_id
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE CONSTRAINT IF NOT EXISTS FOR (e:Procedure) REQUIRE (e.occurrence_id) IS UNIQUE` has no effect.} {description: `CONSTRAINT constraint_b42438b1 FOR (e:Procedure) REQUIRE (e.occurrence_id) IS UNIQUE` already exists.} {position: None} for query: 'CREATE CONSTRAINT IF NOT EXISTS FOR (n:Procedure) REQUIRE n.occurrence_id IS UNIQUE'
+14:52:00  INFO        ✓ constraint Measurement.measurement_id
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE CONSTRAINT IF NOT EXISTS FOR (e:Measurement) REQUIRE (e.measurement_id) IS UNIQUE` has no effect.} {description: `CONSTRAINT constraint_3d220afe FOR (e:Measurement) REQUIRE (e.measurement_id) IS UNIQUE` already exists.} {position: None} for query: 'CREATE CONSTRAINT IF NOT EXISTS FOR (n:Measurement) REQUIRE n.measurement_id IS UNIQUE'
+14:52:00  INFO        ✓ constraint Observation.observation_id
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE CONSTRAINT IF NOT EXISTS FOR (e:Observation) REQUIRE (e.observation_id) IS UNIQUE` has no effect.} {description: `CONSTRAINT constraint_b0dc5044 FOR (e:Observation) REQUIRE (e.observation_id) IS UNIQUE` already exists.} {position: None} for query: 'CREATE CONSTRAINT IF NOT EXISTS FOR (n:Observation) REQUIRE n.observation_id IS UNIQUE'
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE RANGE INDEX IF NOT EXISTS FOR (e:Condition) ON (e.date)` has no effect.} {description: `RANGE INDEX index_e3fdad06 FOR (e:Condition) ON (e.date)` already exists.} {position: None} for query: 'CREATE INDEX IF NOT EXISTS FOR (n:Condition) ON (n.date)'
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE RANGE INDEX IF NOT EXISTS FOR (e:DrugExposure) ON (e.date)` has no effect.} {description: `RANGE INDEX index_dfa3c389 FOR (e:DrugExposure) ON (e.date)` already exists.} {position: None} for query: 'CREATE INDEX IF NOT EXISTS FOR (n:DrugExposure) ON (n.date)'
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE RANGE INDEX IF NOT EXISTS FOR (e:Procedure) ON (e.date)` has no effect.} {description: `RANGE INDEX index_5050681a FOR (e:Procedure) ON (e.date)` already exists.} {position: None} for query: 'CREATE INDEX IF NOT EXISTS FOR (n:Procedure) ON (n.date)'
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE RANGE INDEX IF NOT EXISTS FOR (e:Measurement) ON (e.date)` has no effect.} {description: `RANGE INDEX index_ccbc1440 FOR (e:Measurement) ON (e.date)` already exists.} {position: None} for query: 'CREATE INDEX IF NOT EXISTS FOR (n:Measurement) ON (n.date)'
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE RANGE INDEX IF NOT EXISTS FOR (e:Observation) ON (e.date)` has no effect.} {description: `RANGE INDEX index_8766b5d7 FOR (e:Observation) ON (e.date)` already exists.} {position: None} for query: 'CREATE INDEX IF NOT EXISTS FOR (n:Observation) ON (n.date)'
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE RANGE INDEX IF NOT EXISTS FOR (e:Patient) ON (e.birth_year)` has no effect.} {description: `RANGE INDEX index_f6deb307 FOR (e:Patient) ON (e.birth_year)` already exists.} {position: None} for query: 'CREATE INDEX IF NOT EXISTS FOR (n:Patient) ON (n.birth_year)'
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE RANGE INDEX IF NOT EXISTS FOR (e:Concept) ON (e.domain_id)` has no effect.} {description: `RANGE INDEX index_e64d8fdf FOR (e:Concept) ON (e.domain_id)` already exists.} {position: None} for query: 'CREATE INDEX IF NOT EXISTS FOR (n:Concept)  ON (n.domain_id)'
+14:52:00  INFO      Received notification from DBMS server: {severity: INFORMATION} {code: Neo.ClientNotification.Schema.IndexOrConstraintAlreadyExists} {category: SCHEMA} {title: `CREATE RANGE INDEX IF NOT EXISTS FOR (e:Concept) ON (e.vocabulary_id)` has no effect.} {description: `RANGE INDEX index_79e99d7c FOR (e:Concept) ON (e.vocabulary_id)` already exists.} {position: None} for query: 'CREATE INDEX IF NOT EXISTS FOR (n:Concept)  ON (n.vocabulary_id)'
+14:52:00  INFO      Schema ready.
+
+14:52:00  INFO      === Step 1: Collect referenced concept_ids ===
+14:52:01  INFO        total referenced concept_ids: 0
+
+14:52:01  INFO      === Step 2: Load Concept nodes ===

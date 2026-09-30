@@ -1,11 +1,6 @@
 """
 OMOP Concept Mapping Improvement
 Maps source codes to standard OMOP concept_ids using Athena vocabulary files.
-
-Prerequisites:
-  1. Register at https://athena.ohdsi.org
-  2. Download vocabularies: SNOMED, ICD10CM, RxNorm, LOINC, CPT4, Gender, Race
-  3. Extract the tab-separated CONCEPT.csv to VOCAB_DIR below
 """
 import sqlite3
 import csv
@@ -15,8 +10,6 @@ from pathlib import Path
 
 DB_PATH   = Path("D:/projects/EHR/omop_cdm.db")
 VOCAB_DIR = Path("D:/projects/EHR/vocab")
-
-# ── Hardcoded standard mappings (no vocab file needed) ────────────────────────
 
 GENDER_MAP = {
     "m": 8507, "male": 8507,
@@ -52,7 +45,6 @@ VISIT_MAP = {
     "snf": 42898160,
 }
 
-# EHR-sourced type concept IDs
 TYPE_CONCEPT = {
     "condition":   32020,
     "drug":        38000177,
@@ -63,14 +55,7 @@ TYPE_CONCEPT = {
 }
 
 
-# ── Vocabulary loader ─────────────────────────────────────────────────────────
-
 def load_concept_lookup(vocab_dir):
-    """
-    Returns { (vocabulary_id, concept_code): concept_id }
-    from Athena CONCEPT.csv (tab-delimited).
-    Skips invalid/deprecated concepts.
-    """
     concept_csv = vocab_dir / "CONCEPT.csv"
     if not concept_csv.exists():
         print("  WARN: CONCEPT.csv not found. Only hardcoded maps will be applied.")
@@ -94,8 +79,6 @@ def load_concept_lookup(vocab_dir):
 def get_cid(lookup, vocab, code):
     return lookup.get((vocab, str(code or "").strip()), 0)
 
-
-# ── Per-table update functions ────────────────────────────────────────────────
 
 def update_person(conn, lookup):
     print("\n  [person] Updating gender / race / ethnicity ...")
@@ -227,34 +210,6 @@ def update_measurements(conn, lookup):
         cid = get_cid(lookup, "LOINC", code)
         conn.execute(
             "UPDATE measurement"
-            " SET measurement_concept_id=?, measurement_type_concept_id=SNOMED", code)
-               or get_cid(lookup, "CPT4", code)
-               or get_cid(lookup, "ICD10PCS", code))
-        conn.execute(
-            "UPDATE procedure_occurrence"
-            " SET procedure_concept_id=?, procedure_type_concept_id=?"
-            " WHERE procedure_occurrence_id=?",
-            (cid, TYPE_CONCEPT["procedure"], poid),
-        )
-        if cid:
-            mapped += 1
-    conn.commit()
-    pct = round(mapped / len(rows) * 100, 1) if rows else 0
-    print(f"    {mapped}/{len(rows)} mapped ({pct}%).")
-
-
-def update_measurements(conn, lookup):
-    print("\n  [measurement] LOINC ...")
-    rows = conn.execute(
-        "SELECT measurement_id, measurement_source_value"
-        " FROM measurement WHERE measurement_concept_id = 0"
-    ).fetchall()
-
-    mapped = 0
-    for mid, code in rows:
-        cid = get_cid(lookup, "LOINC", code)
-        conn.execute(
-            "UPDATE measurement"
             " SET measurement_concept_id=?, measurement_type_concept_id=?"
             " WHERE measurement_id=?",
             (cid, TYPE_CONCEPT["measurement"], mid),
@@ -280,9 +235,29 @@ def update_observations(conn, lookup):
         conn.execute(
             "UPDATE observation"
             " SET observation_concept_id=?, observation_type_concept_id=?"
-        ("procedure_occurrence", "procedure_concept_id"),
-        ("measurement",          "measurement_concept_id"),
-        ("observation",          "observation_concept_id"),
+            " WHERE observation_id=?",
+            (cid, TYPE_CONCEPT["observation"], oid),
+        )
+        if cid:
+            mapped += 1
+    conn.commit()
+    pct = round(mapped / len(rows) * 100, 1) if rows else 0
+    print(f"    {mapped}/{len(rows)} mapped ({pct}%).")
+
+
+def print_coverage(conn):
+    sep = "-" * 65
+    print(f"\n{sep}")
+    print("  CONCEPT COVERAGE SUMMARY")
+    print(sep)
+    checks = [
+        ("person",             "gender_concept_id"),
+        ("visit_occurrence",   "visit_concept_id"),
+        ("condition_occurrence","condition_concept_id"),
+        ("drug_exposure",      "drug_concept_id"),
+        ("procedure_occurrence","procedure_concept_id"),
+        ("measurement",        "measurement_concept_id"),
+        ("observation",        "observation_concept_id"),
     ]
     for table, col in checks:
         total  = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
@@ -295,11 +270,25 @@ def update_observations(conn, lookup):
     print(sep)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
 if __name__ == "__main__":
     if not DB_PATH.exists():
         print(f"ERROR: database not found at {DB_PATH}")
         sys.exit(1)
 
-    print
+    print(f"Connecting to {DB_PATH} ...")
+    conn = sqlite3.connect(DB_PATH)
+
+    print("\nLoading Athena vocabulary ...")
+    lookup = load_concept_lookup(VOCAB_DIR)
+
+    update_person(conn, lookup)
+    update_visits(conn, lookup)
+    update_conditions(conn, lookup)
+    update_drugs(conn, lookup)
+    update_procedures(conn, lookup)
+    update_measurements(conn, lookup)
+    update_observations(conn, lookup)
+
+    print_coverage(conn)
+    conn.close()
+    print("\nDone.")
