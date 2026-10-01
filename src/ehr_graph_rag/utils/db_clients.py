@@ -1,150 +1,133 @@
-# ehr-graph-rag/src/ehr_graph_rag/utils/db_clients.py
-"""Database client utilities for Neo4j and Qdrant."""
+"""Database client wrappers for Neo4j and Qdrant with clear error reporting."""
 
-import os
-from typing import Optional
-from neo4j import GraphDatabase
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams
+from __future__ import annotations
+
 import logging
+from typing import Any
+
+from config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
 
+class Neo4jConnectionError(Exception):
+    """Raised when a Neo4j connection cannot be established."""
+
+
+class QdrantConnectionError(Exception):
+    """Raised when a Qdrant connection / health check fails."""
+
+
 class Neo4jClient:
-    """Neo4j database client wrapper."""
-    
-    def __init__(
-        self,
-        uri: Optional[str] = None,
-        user: Optional[str] = None,
-        password: Optional[str] = None
-    ):
-        self.uri = uri or os.getenv("NEO4J_URI", "bolt://localhost:7687")
-        self.user = user or os.getenv("NEO4J_USER", "neo4j")
-        self.password = password or os.getenv("NEO4J_PASSWORD")
-        
-        if not self.password:
-            raise ValueError("Neo4j password must be provided via NEO4J_PASSWORD env var")
-        
-        self.driver = None
-        
-    def connect(self):
-        """Establish connection to Neo4j."""
+    """Thin wrapper around neo4j.GraphDatabase with context-manager support."""
+
+    def __init__(self) -> None:
+        self._settings = get_settings()
+        self._driver: Any = None
+
+    def connect(self) -> None:
+        """Open the Neo4j driver; raise Neo4jConnectionError on failure."""
         try:
-            self.driver = GraphDatabase.driver(
-                self.uri,
-                auth=(self.user, self.password)
+            from neo4j import GraphDatabase  # imported lazily for a clear error message
+        except ImportError as exc:  # pragma: no cover - depends on environment
+            raise Neo4jConnectionError(
+                "The 'neo4j' driver package is not installed. "
+                "Install it with: pip install neo4j  (or: conda install -c conda-forge neo4j-python-driver)"
+            ) from exc
+        try:
+            self._driver = GraphDatabase.driver(
+                self._settings.neo4j_uri,
+                auth=(self._settings.neo4j_user, self._settings.neo4j_password),
             )
-            # Test connection
-            self.driver.verify_connectivity()
-            logger.info(f"Connected to Neo4j at {self.uri}")
-        except Exception as e:
-            logger.error(f"Failed to connect to Neo4j: {e}")
-            raise
-    
-    def close(self):
-        """Close Neo4j connection."""
-        if self.driver:
-            self.driver.close()
-            logger.info("Neo4j connection closed")
-    
-    def execute_query(self, query: str, parameters: Optional[dict] = None):
-        """Execute a Cypher query."""
-        if not self.driver:
-            raise RuntimeError("Not connected to Neo4j. Call connect() first.")
-        
-        with self.driver.session() as session:
-            result = session.run(query, parameters or {})
-            return [record.data() for record in result]
-    
-    def __enter__(self):
+            logger.info("Neo4j driver created for %s", self._settings.neo4j_uri)
+        except Exception as exc:  # auth errors, bad URI, unreachable host, ...
+            raise Neo4jConnectionError(
+                f"Could not create Neo4j driver for '{self._settings.neo4j_uri}': {exc}. "
+                "Check that the server is running and NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD in .env are correct."
+            ) from exc
+
+    def verify_connectivity(self) -> None:
+        """Verify the server is reachable; call connect() first if needed."""
+        if self._driver is None:
+            self.connect()
+        try:
+            self._driver.verify_connectivity()
+        except Exception as exc:
+            raise Neo4jConnectionError(
+                f"Neo4j server at '{self._settings.neo4j_uri}' is not reachable: {exc}. "
+                "Start Neo4j Desktop (or your Aura instance) and verify credentials in .env."
+            ) from exc
+
+    def close(self) -> None:
+        """Close the underlying driver if open."""
+        if self._driver is not None:
+            self._driver.close()
+            self._driver = None
+            logger.info("Neo4j driver closed.")
+
+    def __enter__(self) -> "Neo4jClient":
         self.connect()
         return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
 
 
-class QdrantVectorStore:
-    """Qdrant vector store client wrapper with embedded mode support."""
-    
-    def __init__(
-        self,
-        mode: Optional[str] = None,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        path: Optional[str] = None
-    ):
-        self.mode = mode or os.getenv("QDRANT_MODE", "server")
-        self.host = host or os.getenv("QDRANT_HOST", "localhost")
-        self.port = port or int(os.getenv("QDRANT_PORT", "6333"))
-        self.path = path or os.getenv("QDRANT_PATH", "./data/qdrant_storage")
-        
-        self.client = None
-    
-    def connect(self):
-        """Establish connection to Qdrant (embedded or server mode)."""
+class QdrantClientWrapper:
+    """Thin wrapper around qdrant_client.QdrantClient with a health check."""
+
+    def __init__(self) -> None:
+        self._settings = get_settings()
+        self._client: Any = None
+
+    def connect(self) -> None:
+        """Create the Qdrant client; raise QdrantConnectionError on failure."""
         try:
-            if self.mode == "embedded":
-                logger.info(f"Starting Qdrant in embedded mode at {self.path}")
-                self.client = QdrantClient(path=self.path)
+            from qdrant_client import QdrantClient
+        except ImportError as exc:  # pragma: no cover
+            raise QdrantConnectionError(
+                "The 'qdrant-client' package is not installed. "
+                "Install it with: pip install qdrant-client"
+            ) from exc
+        try:
+            url = self._settings.qdrant_url
+            
+            # Support embedded/in-memory mode
+            if url == ":memory:":
+                self._client = QdrantClient(location=":memory:")
+                logger.info("Qdrant client created in memory mode")
+            elif url.startswith("./") or url.startswith("../") or (len(url) > 2 and url[1] == ':'):
+                # File-based embedded mode (relative or absolute path)
+                self._client = QdrantClient(path=url)
+                logger.info("Qdrant client created in embedded mode: %s", url)
             else:
-                logger.info(f"Connecting to Qdrant server at {self.host}:{self.port}")
-                self.client = QdrantClient(host=self.host, port=self.port)
-            
-            # Test connection
-            collections = self.client.get_collections()
-            logger.info(f"Connected to Qdrant. Found {len(collections.collections)} collections.")
-        except Exception as e:
-            logger.error(f"Failed to connect to Qdrant: {e}")
-            raise
-    
-    def create_collection(
-        self,
-        collection_name: str,
-        vector_size: int = 1536,
-        distance: Distance = Distance.COSINE
-    ):
-        """Create a new collection if it doesn't exist."""
-        if not self.client:
-            raise RuntimeError("Not connected to Qdrant. Call connect() first.")
-        
-        try:
-            collections = self.client.get_collections().collections
-            existing = [c.name for c in collections]
-            
-            if collection_name not in existing:
-                self.client.create_collection(
-                    collection_name=collection_name,
-                    vectors_config=VectorParams(size=vector_size, distance=distance)
+                # Server mode
+                self._client = QdrantClient(
+                    url=url,
+                    api_key=GAPGPTMASKTOKENckwaheeqrvsX0X,
+                    timeout=5,
                 )
-                logger.info(f"Created collection: {collection_name}")
-            else:
-                logger.info(f"Collection {collection_name} already exists")
-        except Exception as e:
-            logger.error(f"Failed to create collection {collection_name}: {e}")
-            raise
-    
-    def close(self):
-        """Close Qdrant connection (if applicable)."""
-        if self.client:
-            logger.info("Qdrant connection closed")
-            self.client = None
-    
-    def __enter__(self):
-        self.connect()
-        return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+                logger.info("Qdrant client created for server: %s", url)
+        except Exception as exc:
+            raise QdrantConnectionError(
+                f"Could not create Qdrant client for '{self._settings.qdrant_url}': {exc}. "
+                "Check that QDRANT_URL in .env is correct (:memory: for in-memory, path for file-based, or http://... for server)."
+            ) from exc
 
+    def health_check(self) -> bool:
+        """Return True if the Qdrant server answers a collections listing."""
+        if self._client is None:
+            self.connect()
+        try:
+            self._client.get_collections()
+            return True
+        except Exception as exc:
+            raise QdrantConnectionError(
+                f"Qdrant health check failed: {exc}. "
+                "Ensure the Qdrant configuration in .env is correct."
+            ) from exc
 
-def get_neo4j_client() -> Neo4jClient:
-    """Factory function to get Neo4j client."""
-    return Neo4jClient()
-
-
-def get_qdrant_client() -> QdrantVectorStore:
-    """Factory function to get Qdrant client."""
-    return QdrantVectorStore()
+    def close(self) -> None:
+        if self._client is not None:
+            self._client.close()
+            self._client = None

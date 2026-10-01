@@ -81,3 +81,54 @@ Failed to establish connection to ResolvedIPv4Address(('127.0.0.1', 7687)) (reas
 14:52:01  INFO        total referenced concept_ids: 0
 
 14:52:01  INFO      === Step 2: Load Concept nodes ===
+19:28:04  INFO      Connecting to Neo4j at neo4j://127.0.0.1:7687 …
+19:28:04  INFO      Connected.
+
+19:28:04  WARNING   Wiping entire graph …
+19:28:06  WARNING   Received notification from DBMS server: {severity: WARNING} {code: Neo.ClientNotification.Statement.FeatureDeprecationWarning} {category: DEPRECATION} {title: This feature is deprecated and will be removed in future versions.} {description: CALL subquery without a variable scope clause is deprecated. Use CALL (n) { ... }} {position: line: 1, column: 11, offset: 10} for query: 'MATCH (n) CALL { WITH n DETACH DELETE n } IN TRANSACTIONS OF 10000 ROWS'
+19:28:06  INFO      Graph wiped.
+
+19:28:06  INFO      === Step 0: Schema ===
+19:28:06  INFO        ✓ constraint Patient.person_id
+19:28:06  INFO        ✓ constraint Concept.concept_id
+19:28:06  INFO        ✓ constraint Condition.occurrence_id
+19:28:06  INFO        ✓ constraint DrugExposure.exposure_id
+19:28:06  INFO        ✓ constraint Procedure.occurrence_id
+19:28:07  INFO        ✓ constraint Measurement.measurement_id
+19:28:07  INFO        ✓ constraint Observation.observation_id
+19:28:07  INFO      Schema ready.
+
+19:28:07  INFO        Reading CONCEPT.csv for source map …
+19:28:17  INFO          code_to_cid: 4023497  |  standard: 847760
+19:28:17  INFO        Reading CONCEPT_RELATIONSHIP.csv for Maps-to chain …
+19:28:52  INFO          Maps-to pairs found: 1207568
+19:28:54  INFO        Source map ready: 2394428 entries
+
+19:28:54  INFO      === Step 1: Collect referenced concept_ids ===
+19:28:56  INFO        total referenced concept_ids: 866
+
+19:28:56  INFO      === Step 2: Load Concept nodes ===
+19:29:12  INFO        Concept nodes loaded: 866
+
+19:29:12  INFO      === Step 3: Load Patient nodes ===
+19:29:12  INFO        Patient nodes loaded: 230
+
+19:29:12  INFO      === Step 4: Load clinical-event nodes ===
+19:29:19  INFO        Condition         nodes/edges loaded: 7729
+19:29:24  INFO        DrugExposure      nodes/edges loaded: 9067
+19:29:30  INFO        Procedure         nodes/edges loaded: 33672
+19:29:48  INFO        Measurement       nodes/edges loaded: 90684
+19:29:57  INFO        Observation       nodes/edges loaded: 55602
+19:29:57  INFO      
+19:29:57  INFO      === Step 5: MAPS_TO edges ===
+19:29:59  INFO        Condition         MAPS_TO created: 7622
+19:30:00  INFO        DrugExposure      MAPS_TO created: 9067
+19:30:02  INFO        Procedure         MAPS_TO created: 33457
+19:30:05  INFO        Measurement       MAPS_TO created: 84345
+19:30:07  INFO        Observation       MAPS_TO created: 55556
+19:30:07  INFO      
+19:30:07  INFO      === Step 6: NEXT_EVENT temporal chain ===
+19:30:07  INFO        Cleared existing NEXT_EVENT edges.
+19:30:44  INFO        NEXT_EVENT edges created: 196524
+
+19:30:44  INFO      === Done in 159.3 s ===

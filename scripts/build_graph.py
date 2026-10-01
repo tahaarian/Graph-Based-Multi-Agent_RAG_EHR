@@ -3,6 +3,7 @@ build_graph.py  –  OMOP CDM  →  Neo4j Temporal Knowledge Graph
 
 Pipeline:
   0. Schema: constraints + indexes
+  1b. Build source-code → standard concept_id map (SNOMED/RxNorm → OMOP)
   1. Collect referenced concept_ids (pre-scan, memory-efficient)
   2. Load Concept nodes  (only referenced ~thousands, not full 1.3M)
   3. Load Patient nodes  (person.csv)
@@ -31,8 +32,8 @@ from neo4j import GraphDatabase
 from neo4j.exceptions import Neo4jError
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
-BASE_DIR  = Path(r"D:\projects\EHR\Graph-Based-Multi-Agent_RAG_EHR")
-VOCAB_DIR = Path(r"D:\projects\EHR\vocab")
+BASE_DIR  = Path(r"E:\projects\taha\RAG papers\my paper and project\Graph-Based-Multi-Agent_RAG_EHR")
+VOCAB_DIR = Path(r"E:\projects\taha\RAG papers\my paper and project\vocab")
 OMOP_DIR  = BASE_DIR / "data" / "processed" / "omop_cdm"
 
 # ─── Neo4j credentials ────────────────────────────────────────────────────────
@@ -220,9 +221,78 @@ def create_schema(driver) -> None:
     log.info("Schema ready.\n")
 
 
+# ─── Step 1b: Build source-code → standard concept_id map ────────────────────
+
+def build_source_map() -> dict[str, int]:
+    concept_path = VOCAB_DIR / "CONCEPT.csv"
+    rel_path     = VOCAB_DIR / "CONCEPT_RELATIONSHIP.csv"
+
+    if not concept_path.exists():
+        log.warning("  CONCEPT.csv not found – source mapping unavailable")
+        return {}
+
+    code_to_cid:  dict[str, int] = {}
+    standard_ids: set[int]       = set()
+
+    log.info("  Reading CONCEPT.csv for source map …")
+    delim = detect_delimiter(concept_path)
+    with open(concept_path, encoding="utf-8", errors="replace", newline="") as f:
+        for row in csv.DictReader(f, delimiter=delim):
+            try:
+                cid = int(row.get("concept_id", "").strip())
+            except ValueError:
+                continue
+            code  = (row.get("concept_code")     or "").strip()
+            vocab = (row.get("vocabulary_id")    or "").strip()
+            std   = (row.get("standard_concept") or "").strip()
+
+            if code:
+                code_to_cid[code]              = cid  # bare:      "314529007"
+                code_to_cid[f"{vocab}:{code}"] = cid  # qualified: "SNOMED:314529007"
+
+            if std == "S":
+                standard_ids.add(cid)
+
+    log.info("    code_to_cid: %d  |  standard: %d", len(code_to_cid), len(standard_ids))
+
+    maps_to: dict[int, int] = {}
+
+    if rel_path.exists():
+        log.info("  Reading CONCEPT_RELATIONSHIP.csv for Maps-to chain …")
+        delim2 = detect_delimiter(rel_path)
+        with open(rel_path, encoding="utf-8", errors="replace", newline="") as f:
+            for row in csv.DictReader(f, delimiter=delim2):
+                if (row.get("relationship_id") or "").strip() != "Maps to":
+                    continue
+                try:
+                    c1 = int(row.get("concept_id_1", "").strip())
+                    c2 = int(row.get("concept_id_2", "").strip())
+                except ValueError:
+                    continue
+                if c2 in standard_ids:
+                    maps_to[c1] = c2
+        log.info("    Maps-to pairs found: %d", len(maps_to))
+    else:
+        log.warning("  CONCEPT_RELATIONSHIP.csv not found – only direct standard codes mapped")
+
+    result: dict[str, int] = {}
+    for code, cid in code_to_cid.items():
+        if cid in standard_ids:
+            result[code] = cid
+        elif cid in maps_to:
+            result[code] = maps_to[cid]
+
+    log.info("  Source map ready: %d entries\n", len(result))
+    return result
+
 # ─── Step 1: Collect referenced concept_ids ───────────────────────────────────
 
-def collect_referenced_concepts() -> set[int]:
+def collect_referenced_concepts(source_map: dict[str, int]) -> set[int]:
+    """
+    Scans all OMOP tables and collects every standard concept_id that will be
+    needed.  If a row's *_concept_id is 0 or missing, falls back to resolving
+    *_source_value through source_map.
+    """
     log.info("=== Step 1: Collect referenced concept_ids ===")
     ids: set[int] = set()
     for tbl in TABLE_CONFIG:
@@ -232,6 +302,10 @@ def collect_referenced_concepts() -> set[int]:
             continue
         for row in iter_csv(path):
             cid = _int(row, tbl["concept_col"])
+            if not cid or cid == 0:                          # fallback to source_value
+                sv = _val(row, tbl["source_col"])
+                if sv:
+                    cid = source_map.get(sv) or source_map.get(sv.strip())
             if cid and cid != 0:
                 ids.add(cid)
     log.info("  total referenced concept_ids: %d\n", len(ids))
@@ -347,7 +421,7 @@ def load_patients(driver) -> None:
 
 # ─── Step 4: Load clinical-event nodes + Patient→Event edges ──────────────────
 
-def load_events(driver) -> None:
+def load_events(driver, source_map: dict[str, int]) -> None:
     log.info("=== Step 4: Load clinical-event nodes ===")
 
     for tbl in TABLE_CONFIG:
@@ -356,18 +430,17 @@ def load_events(driver) -> None:
             log.warning("  missing: %s – skipping", tbl["file"])
             continue
 
-        label      = tbl["label"]
-        id_col     = tbl["id_col"]
-        node_id    = tbl["node_id"]
-        person_col = tbl["person_col"]
-        concept_col= tbl["concept_col"]
-        source_col = tbl["source_col"]
-        rel        = tbl["rel"]
-        date_col   = tbl["date_col"]
-        end_col    = tbl.get("end_col")
-        extra_cols = tbl.get("extra_cols", [])
+        label       = tbl["label"]
+        id_col      = tbl["id_col"]
+        node_id     = tbl["node_id"]
+        person_col  = tbl["person_col"]
+        concept_col = tbl["concept_col"]
+        source_col  = tbl["source_col"]
+        rel         = tbl["rel"]
+        date_col    = tbl["date_col"]
+        end_col     = tbl.get("end_col")
+        extra_cols  = tbl.get("extra_cols", [])
 
-        # Build the Cypher dynamically so extra props are always SET
         extra_set = "\n".join(
             f"        e.{col} = r.{col}," for col in extra_cols
         )
@@ -394,16 +467,23 @@ def load_events(driver) -> None:
                 if not eid or not pid:
                     continue
 
+                # Resolve concept_id: use column value if non-zero,
+                # otherwise look up source_value in the source map
+                concept_id = _int(row, concept_col)
+                if not concept_id or concept_id == 0:
+                    sv = _val(row, source_col)
+                    if sv:
+                        concept_id = source_map.get(sv)
+
                 record: dict = {
                     "event_id":    eid,
                     "person_id":   pid,
                     "date":        _val(row, date_col),
                     "end_date":    _val(row, end_col) if end_col else None,
                     "source_value":_val(row, source_col),
-                    "concept_id":  _int(row, concept_col),
+                    "concept_id":  concept_id,
                 }
                 for col in extra_cols:
-                    # store numbers as float where possible, else string
                     v = _val(row, col)
                     if v is not None:
                         try:
@@ -454,21 +534,14 @@ def build_next_event_chain(driver) -> None:
     """
     For each patient, collect all their events cross-domain,
     sort by date, then chain with NEXT_EVENT relationships.
-
-    Strategy: pull (patient, event_node_id, date, label) in Python,
-    sort per patient, then write chains in batches.
-    This avoids a single massive Cypher sort over all nodes.
     """
     log.info("=== Step 6: NEXT_EVENT temporal chain ===")
 
-    # Remove any existing NEXT_EVENT edges first (idempotent rebuild)
     with driver.session() as s:
         s.run("MATCH ()-[r:NEXT_EVENT]->() DELETE r")
     log.info("  Cleared existing NEXT_EVENT edges.")
 
-    # Collect (person_id, date, label, event_id) from all tables in Python
-    from collections import defaultdict
-    timeline: dict = defaultdict(list)   # person_id -> [(date, label, event_id)]
+    timeline: dict = defaultdict(list)
 
     for tbl in TABLE_CONFIG:
         path = OMOP_DIR / tbl["file"]
@@ -483,12 +556,11 @@ def build_next_event_chain(driver) -> None:
         for row in iter_csv(path):
             pid  = _int(row, p_col)
             eid  = _int(row, id_col)
-            date = _val(row, d_col) or "9999-99-99"   # sort unknown dates last
+            date = _val(row, d_col) or "9999-99-99"
             if pid and eid:
                 timeline[pid].append((date, label, eid, node_id))
 
-    # Sort each patient's timeline and emit NEXT_EVENT pairs
-    cypher_templates: dict = {}   # label_pair -> cypher string (cached)
+    cypher_templates: dict = {}
 
     def get_cypher(label_a: str, nid_a: str, label_b: str, nid_b: str) -> str:
         key = (label_a, nid_a, label_b, nid_b)
@@ -502,7 +574,6 @@ def build_next_event_chain(driver) -> None:
         return cypher_templates[key]
 
     def date_to_int(d: str) -> int:
-        """YYYY-MM-DD → integer for delta calculation; returns 0 on failure."""
         try:
             parts = d.split("-")
             return int(parts[0]) * 10000 + int(parts[1]) * 100 + int(parts[2])
@@ -510,7 +581,7 @@ def build_next_event_chain(driver) -> None:
             return 0
 
     total_edges = 0
-    pair_buffer: dict = defaultdict(list)   # key -> [{id_a, id_b, delta}]
+    pair_buffer: dict = defaultdict(list)
 
     def flush_pairs(session):
         nonlocal total_edges
@@ -522,7 +593,7 @@ def build_next_event_chain(driver) -> None:
 
     with driver.session() as session:
         for pid, events in timeline.items():
-            events.sort(key=lambda x: x[0])   # sort by date string (ISO-sortable)
+            events.sort(key=lambda x: x[0])
 
             for i in range(len(events) - 1):
                 date_a, label_a, eid_a, nid_a = events[i]
@@ -535,12 +606,9 @@ def build_next_event_chain(driver) -> None:
                     "delta": delta,
                 })
 
-            # Flush every ~50k pairs to avoid unbounded memory
-            # Flush every ~50k pairs to avoid unbounded memory
             if sum(len(v) for v in pair_buffer.values()) >= 50_000:
                 flush_pairs(session)
 
-        # Final flush for remaining pairs
         flush_pairs(session)
 
     log.info("  NEXT_EVENT edges created: %d\n", total_edges)
@@ -551,7 +619,6 @@ def build_next_event_chain(driver) -> None:
 def wipe_graph(driver) -> None:
     log.warning("Wiping entire graph …")
     with driver.session() as s:
-        # IN TRANSACTIONS avoids memory explosion on large graphs
         s.run(
             "MATCH (n) "
             "CALL { WITH n DETACH DELETE n } "
@@ -592,14 +659,14 @@ def main() -> None:
 
     create_schema(driver)
 
-    referenced = collect_referenced_concepts()
-    load_concepts(driver, referenced)
-    load_patients(driver)
-    load_events(driver)
-    build_maps_to(driver)
-
+    source_map = build_source_map()                        # Step 1b: build SNOMED→OMOP map
+    referenced = collect_referenced_concepts(source_map)   # Step 1:  scan all tables
+    load_concepts(driver, referenced)                      # Step 2:  load Concept nodes
+    load_patients(driver)                                  # Step 3:  load Patient nodes
+    load_events(driver, source_map)                        # Step 4:  load events + edges
+    build_maps_to(driver)                                  # Step 5:  MAPS_TO edges
     if not args.skip_chain:
-        build_next_event_chain(driver)
+        build_next_event_chain(driver)                     # Step 6:  NEXT_EVENT chain
 
     driver.close()
     elapsed = time.time() - t0
