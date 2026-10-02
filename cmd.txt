@@ -1,0 +1,2 @@
+conda activate ehr-graph-rag
+python scripts/embed_concepts.py --wipe --test
