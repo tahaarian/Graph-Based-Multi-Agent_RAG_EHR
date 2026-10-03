@@ -1,72 +1,122 @@
-# EHR Graph-RAG: Dynamic Graph-Based Multi-Agent RAG Framework for Longitudinal EHRs
+EHR Graph-RAG: Dynamic Graph-Based Multi-Agent RAG Framework for Longitudinal EHRs
+This project is a dynamic graph-based, multi-agent Graph-RAG framework for faithful retrieval and reasoned decision-making over longitudinal Electronic Health Records. Instead of pure vector retrieval, patient history is modeled as a dynamic heterogeneous graph (Patient · Visit · Condition · Medication · Observation · Procedure), combining Temporal-Semantic Path Retrieval (TSPR) and multi-agent consensus (CMAC) to produce traceable, evidence-backed answers.
+Benchmark: EHRSHOT
+Schema: OMOP CDM v5.4
+Target: Q1 journal publication
+Stack: Neo4j · PyTorch Geometric · SapBERT · LangGraph · Qdrant
+Pipeline Overview
+The following ASCII diagram shows the end-to-end flow across Phases 1–5, including current graph statistics and the medication mapping blocker:
+Raw OMOP CDM v5.4 CSVs (EHRSHOT)
+            │
+            ▼
+┌───────────────────────────────┐
+│  Phase 1 · Ingestion           │  ← scripts/load_ehrshot.py
+│  EHRSHOT / OMOP CDM v5.4      │     scripts/validate_schema.py
+└───────────────┬───────────────┘
+                │  patients, visits, conditions,
+                │  medications, observations, procedures
+                ▼
+┌───────────────────────────────────────────────┐
+│  Phase 2 · Dynamic Heterogeneous Graph         │  ← scripts/build_graph.py
+│  Neo4j  +  PyG  +  SapBERT embeddings         │     scripts/build_concept_links.py
+│                                                │     scripts/enrich_rxnorm.py  ⚠ WIP
+│  Nodes : Patient · Visit · Concept            │
+│  Edges : HAS_VISIT · OCCURRED_AT              │
+│          MAPPED_TO · TEMPORALLY_FOLLOWS        │
+└───────────────┬───────────────┘
+                │  38,926 MAPPED_TO edges
+                │  11,795 TEMPORALLY_FOLLOWS edges
+                │  ⚠  Medication MAPPED_TO = 0 (blocker)
+                ▼
+┌───────────────────────────────────────────────┐
+│  Phase 3 · TSPR                                │  ← src/ehr_graph_rag/retrieval/tspr.py
+│  Temporal-Semantic Path Retrieval              │
+│  Temporal decay × cosine similarity scoring   │
+└───────────────┬───────────────┘
+                │  ranked subgraph paths
+                ▼
+┌───────────────────────────────────────────────┐
+│  Phase 4 · CMAC                                │  ← src/ehr_graph_rag/agents/  (LangGraph)
+│  Multi-Agent Consensus                         │
+│  Agents: Diagnosis · Pharmacology · Labs       │
+└───────────────┬───────────────┘
+                │  evidence-backed answer
+                ▼
+┌───────────────────────────────────────────────┐
+│  Phase 5 · Evaluation                          │  ← src/ehr_graph_rag/evaluation/
+│  AUROC · F1 · RAGAS Faithfulness              │
+└───────────────────────────────────────────────┘
 
-## چکیده (Abstract)
-
-این پروژه یک چارچوب **Graph-RAG چندعاملی و مبتنی بر گراف پویا** برای بازیابی وفادارانه (Faithful Retrieval) و تصمیم‌گیری استدلالی (Reasoned Decision-Making) روی **الکترونیک سوابق سلامت طولی (Longitudinal EHRs)** است. به‌جای بازیابی برداریِ صرف، تاریخچه بیمار به‌صورت یک **گراف ناهمگن پویا** (شامل بیمار، ویزیت، بیماری، دارو، آزمایش و پروسیجر) مدل‌سازی می‌شود و با ترکیب **مسیر‌یابی معنایی-زمانی** و **اجماع چندعاملی**، پاسخ‌هایی قابل‌ردیابی و مبتنی بر شواهد تولید می‌گردد. هدف نهایی، انتشار یک مقاله در مجلات **Q1** است که روی بنچمارک عمومی **EHRSHOT** و طرح مشترک **OMOP CDM v5.4** ارزیابی می‌شود.
-
-## راه‌اندازی (Setup)
-
-### روش اصلی: Conda (توصیه‌شده)
-
-```bash
+Setup
+Two setup options are supported:
+Option A — Conda (recommended)
 conda env create -f environment.yml
 conda activate ehr-graph-rag
-```
 
-### روش جایگزین: pip
-
-```bash
+Option B — pip
 python -m venv .venv
-source .venv/bin/activate   # ویندوز: .venv\Scripts\activate
+
+# Windows
+.venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
+
 pip install -r requirements.txt
-# توجه: torch-geometric برای نصب به ایندکس چرخ‌های (wheel) اختصاصی PyG نیاز دارد؛
-# در صورت خطا به https://pytorch-geometric.readthedocs.io/en/latest/installation.html مراجعه کنید:
-pip install torch_geometric -f https://data.pyg.org/whl/torch-${TORCH_VERSION}+${CUDA}.html
-```
 
-## پیکربندی (Configuration)
+PyG note: torch_geometric requires the project-specific wheel index. If the default install fails, install from the matching wheel index for your Torch/CUDA combination:
+pip install torch_geometric \
+  -f https://data.pyg.org/whl/torch-${TORCH_VERSION}+${CUDA}.html
 
-```bash
+Configuration & Environment Validation
+Copy the environment template and fill in real values:
 cp .env.example .env
-# سپس مقادیر واقعی NEO4J_PASSWORD ،QDRANT_API_KEY و ... را در .env وارد کنید.
-# هرگز فایل .env را به git کامیت نکنید (در .gitignore پوشش داده شده است).
-```
 
-## اعتبارسنجی محیط
+Minimum required keys in .env:
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=<your-password>
 
-```bash
-python scripts/check_environment.py   # بررسی نسخه پایتون و پکیج‌های نصب‌شده
-python scripts/test_db_connections.py # تست اتصال به Neo4j و Qdrant
-```
+QDRANT_HOST=localhost
+QDRANT_PORT=6333
+QDRANT_API_KEY=<your-key>
 
-## ساختار پروژه
+LLM_MODEL=gpt-4o
+OPENAI_API_KEY=<your-key>
 
-```
-ehr-graph-rag/
-├── config/            # تنظیمات pydantic-settings و لاگ‌گیری
+.env is covered by .gitignore — never commit it.
+Environment Validation
+python scripts/check_environment.py      # Python version & installed packages
+python scripts/test_db_connections.py    # Neo4j and Qdrant connectivity
+
+Project Structure
+├── config/
+│   ├── settings.py           # pydantic-settings config
+│   └── logging_config.py
 ├── data/
-│   ├── raw/           # CSVهای خام OMOP CDM v5.4 (کامیت نمی‌شود)
-│   ├── processed/     # داده پاک‌سازی‌شده و نگاشت‌شده به اسکیمای داخلی
-│   └── external/      # داده کمکی (فرهنگ‌های داده، واژگان)
-├── docs/              # معماری و مستندات
-├── scripts/           # check_environment.py ، test_db_connections.py
+│   ├── raw/                  # raw OMOP CDM v5.4 CSVs  (not committed)
+│   ├── processed/            # cleaned / mapped records
+│   └── external/             # vocabularies, data dictionaries
+├── docs/
+│   └── architecture.md
+├── scripts/
+│   ├── check_environment.py
+│   ├── test_db_connections.py
+│   ├── build_graph.py
+│   ├── build_concept_links.py
+│   └── enrich_rxnorm.py      # WIP — resolves Medication MAPPED_TO = 0
 ├── src/ehr_graph_rag/
-│   ├── ingestion/     # فاز ۱: بارگذاری EHRSHOT / OMOP CDM v5.4
-│   ├── graph/         # فاز ۲: گراف ناهمگن پویا (Neo4j + PyG + SapBERT)
-│   ├── retrieval/     # فاز ۳: بازیابی مسیر معنایی-زمانی TSPR
-│   ├── agents/        # فاز ۴: اجماع چندعاملی CMAC (LangGraph)
-│   ├── evaluation/    # فاز ۵: AUROC / F1 / RAGAS faithfulness
-│   └── utils/         # کلاینت‌های دیتابیس و ابزارهای مشترک
-└── tests/             # تست‌های pytest
-```
+│   ├── ingestion/            # Phase 1 — EHRSHOT / OMOP CDM v5.4 loading
+│   ├── graph/                # Phase 2 — Neo4j + PyG + SapBERT
+│   ├── retrieval/            # Phase 3 — TSPR
+│   ├── agents/               # Phase 4 — CMAC multi-agent consensus (LangGraph)
+│   ├── evaluation/           # Phase 5 — AUROC / F1 / RAGAS
+│   └── utils/                # DB clients, shared utilities
+└── tests/
 
-## نقشه راه (Roadmap)
-
-| فاز | عنوان | شرح |
-|-----|-------|-----|
-| ۰ | Infrastructure | راه‌اندازی ریپو، محیط conda، کلاینت‌های Neo4j/Qdrant |
-| ۱ | Ingestion | بارگذاری و اعتبارسنجی داده EHRSHOT بر پایه OMOP CDM v5.4 |
-| ۲ | Dynamic Heterogeneous Graph | ساخت گراف پویا در Neo4j و امبدینگ گره‌ها با PyG و SapBERT |
-| ۳ | TSPR | بازیابی مسیر معنایی-زمانی (Temporal-Semantic Path Retrieval) |
-| ۴ | CMAC | اجماع چندعاملی (تشخیص/داروشناسی/آزمایش) با LangGraph |
-| ۵ | Evaluation | سنجش AUROC ،F1 و وفاداری RAGAS |
+Graph Metrics
+Current state after Phase 3:
+Edge typeCountStatusMAPPED_TO — Condition35,245✅MAPPED_TO — Observation3,681✅MAPPED_TO — Procedure67,344✅MAPPED_TO — total38,926✅MAPPED_TO — Medication0❌ Critical blockerTEMPORALLY_FOLLOWS11,795⏳ Decay weighting pending
+Medication blocker: scripts/enrich_rxnorm.py is in development to resolve the 0-match rate via RxNorm API / CSV lookup against the drug_exposure table. This is the highest-priority item for Phase 4.
+Roadmap
+PhaseMilestoneStatus0Infrastructure — repo, conda environment, Neo4j/Qdrant clients✅ Done1Ingestion — EHRSHOT / OMOP CDM v5.4 loading and schema validation✅ Done2Dynamic Heterogeneous Graph — Neo4j graph, SapBERT embeddings, concept links✅ Done3TSPR — Temporal-Semantic Path Retrieval (temporal decay pending)🔄 In Progress4CMAC — Multi-agent consensus via LangGraph; enrich_rxnorm.py medication mapping🔄 In Progress5Evaluation — AUROC, F1, and RAGAS faithfulness on EHRSHOT⏳ Pending
